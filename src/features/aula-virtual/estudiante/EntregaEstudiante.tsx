@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { crearEntrega } from "../../../services/entregaService";
+import { extraerMensajeError } from "../../../lib/erroresHttp";
 
 import type {
   ActividadAcademica,
@@ -52,10 +53,8 @@ export default function EntregaEstudiante({
 
       onEntregaCreada(nuevaEntrega);
       setRespuestaTexto("");
-    } catch {
-      setError(
-        "No fue posible enviar la entrega. Verifica el plazo y tu matrícula.",
-      );
+    } catch (err: unknown) {
+      setError(extraerMensajeError(err));
     } finally {
       setEnviando(false);
     }
@@ -172,7 +171,14 @@ export default function EntregaEstudiante({
             disabled={enviando}
           />
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p
+              className="rounded-lg bg-red-50 p-3 text-sm text-red-700"
+              role="alert"
+            >
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
