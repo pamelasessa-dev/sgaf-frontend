@@ -9,7 +9,13 @@ import PaginaNoEncontrada from "./routes/PaginaNoEncontrada";
 import RutaProtegida from "./routes/RutaProtegida";
 
 const MiPerfilPage = lazy(() => import("./features/perfil/MiPerfilPage"));
+const ProfesorAulaVirtualPage = lazy(
+  () => import("./features/aula-virtual/profesor/ProfesorAulaVirtualPage"),
+);
 
+const EstudianteAulaVirtualPage = lazy(
+  () => import("./features/aula-virtual/estudiante/EstudianteAulaVirtualPage"),
+);
 const AdminDashboard = lazy(
   () => import("./features/administracion/AdminDashboard"),
 );
@@ -71,6 +77,10 @@ function App() {
               <Route element={<RutaProtegida rolesPermitidos={["PROFESOR"]} />}>
                 <Route path="/profesor" element={<ProfesorInicio />} />
                 <Route path="/profesor/perfil" element={<MiPerfilPage />} />
+                <Route
+                  path="/profesor/aula-virtual"
+                  element={<ProfesorAulaVirtualPage />}
+                />
               </Route>
 
               {/* Estudiante */}
@@ -79,6 +89,10 @@ function App() {
               >
                 <Route path="/estudiante" element={<EstudianteDashboard />} />
                 <Route path="/estudiante/perfil" element={<MiPerfilPage />} />
+                <Route
+                  path="/estudiante/aula-virtual"
+                  element={<EstudianteAulaVirtualPage />}
+                />
               </Route>
             </Route>
           </Route>
