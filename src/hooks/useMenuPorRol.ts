@@ -20,14 +20,15 @@ const MENUS: Record<RolUsuario, EnlaceMenu[]> = {
     { to: "/recepcion/perfil", etiqueta: "Mi perfil" },
     { to: "/usuarios", etiqueta: "Usuarios" },
   ],
-
   PROFESOR: [
     { to: "/profesor", etiqueta: "Panel", fin: true },
+    { to: "/profesor/aula-virtual", etiqueta: "Aula Virtual" },
     { to: "/profesor/perfil", etiqueta: "Mi perfil" },
   ],
 
   ESTUDIANTE: [
     { to: "/estudiante", etiqueta: "Panel", fin: true },
+    { to: "/estudiante/aula-virtual", etiqueta: "Aula Virtual" },
     { to: "/estudiante/perfil", etiqueta: "Mi perfil" },
   ],
 };
