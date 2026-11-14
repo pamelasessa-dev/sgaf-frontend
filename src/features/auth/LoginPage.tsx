@@ -1,4 +1,3 @@
-
 /**
  * LoginPage.tsx
  *
@@ -10,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { isAxiosError } from "axios";
+import { codigoHttp, extraerMensajeError } from "../../lib/erroresHttp";
 import { useNavigate } from "react-router-dom";
 
 import LoginForm from "./LoginForm";
@@ -51,30 +50,18 @@ export default function LoginPage() {
     } catch (error: unknown) {
       console.error("Error al iniciar sesión", error);
 
-      if (isAxiosError(error)) {
-        const mensaje = error.response?.data?.message;
+      const mensaje = extraerMensajeError(error);
 
-        if (Array.isArray(mensaje)) {
-          setErrorLogin(mensaje.join(". "));
-        } else if (typeof mensaje === "string") {
-          setErrorLogin(mensaje);
-        } else if (error.response?.status === 401) {
-          setErrorLogin("El correo o la contraseña son incorrectos.");
-        } else if (error.response?.status === 403) {
-          setErrorLogin("Tu cuenta no tiene permiso para iniciar sesión. Verificá su estado.");
-        } else {
-          setErrorLogin("No se pudo iniciar sesión. Intentá nuevamente.");
-        }
+      if (mensaje.toLowerCase().includes("el usuario no está activo")) {
+        setErrorLogin(
+          "Tu cuenta no está activa. Si se debe a una suspensión por mora, contactá a Recepción para regularizar tu situación.",
+        );
+      } else if (codigoHttp(error) === 401) {
+        setErrorLogin("El correo o la contraseña son incorrectos.");
       } else {
-        setErrorLogin("Ocurrió un error inesperado al iniciar sesión.");
+        setErrorLogin(mensaje);
       }
     }
   };
-
-  return (
-    <LoginForm
-      alEnviar={manejarLogin}
-      errorLogin={errorLogin}
-    />
-  );
+  return <LoginForm alEnviar={manejarLogin} errorLogin={errorLogin} />;
 }

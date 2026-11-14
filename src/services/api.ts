@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "../stores/authStore";
+import { useAccesoStore } from "../stores/accesoStore";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -9,7 +10,7 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Antes de cada petición, buscamos el token en Zustand.
+// Antes de cada petición, agregamos el token si existe.
 api.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token;
@@ -20,40 +21,40 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => {
+  (error) => Promise.reject(error),
+);
+
+// Gestionamos los errores de autenticación y permisos.
+api.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      const estado = error.response?.status;
+
+      if (estado === 401) {
+        // La sesión ya no es válida.
+        useAuthStore.getState().logout();
+        useAccesoStore.getState().limpiar();
+      }
+
+      if (estado === 403) {
+        // El usuario sigue autenticado, pero no tiene permiso.
+        const respuesta = error.response?.data as
+          | { message?: string | string[] }
+          | undefined;
+
+        const mensaje = Array.isArray(respuesta?.message)
+          ? respuesta.message.join(". ")
+          : respuesta?.message;
+
+        useAccesoStore
+          .getState()
+          .mostrar(mensaje || "No tienes permiso para realizar esta acción.");
+      }
+    }
+
     return Promise.reject(error);
   },
 );
 
 export default api;
-
-/** Instancia de Axios para las solicitudes HTTP 
- * Hasta ahora tenemos dos aplicaciones:
-- Frontend: React, donde el usuario interactúa con botones, formularios y pantallas.
-- Backend: NestJS, donde están las rutas, la lógica de negocio y la conexión con PostgreSQL.
-Pero estas aplicaciones necesitan comunicarse.
-
-Por ejemplo, cuando un administrador inicia sesión, React debe enviar su correo y contraseña al backend. El backend verifica los datos y devuelve un token.
-
-Para realizar esa comunicación utilizaremos Axios.
- * 
-axios.create()
-
-Crea una instancia personalizada de Axios. En lugar de configurar cada solicitud individualmente, configuramos una sola vez los valores generales.
-
-baseURL
-
-Es la dirección base de nuestro backend.
-
-headers
-
-Indica que normalmente enviaremos información en formato JSON.
-
-timeout
-
-Establece un límite de 15 segundos para esperar una respuesta.
-
-export default api
-
-Permite importar esta instancia desde cualquier servicio del frontend.
-*/

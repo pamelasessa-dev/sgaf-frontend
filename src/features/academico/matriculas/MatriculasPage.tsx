@@ -6,8 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import axios from "axios";
-
+import { extraerMensajeError } from "../../../lib/erroresHttp";
 import {
   obtenerGruposDisponibles,
   obtenerMisMatriculas,
@@ -35,27 +34,6 @@ const formatearImporte = (importe: string | number) => {
   return new Intl.NumberFormat("es-UY", {
     maximumFractionDigits: 2,
   }).format(numero);
-};
-
-// Obtiene un mensaje comprensible de los errores de la API.
-const obtenerMensajeError = (error: unknown): string => {
-  if (axios.isAxiosError(error)) {
-    const mensaje = error.response?.data?.message;
-
-    if (Array.isArray(mensaje)) {
-      return mensaje.join(", ");
-    }
-
-    if (typeof mensaje === "string") {
-      return mensaje;
-    }
-
-    if (!error.response) {
-      return "No se pudo conectar con el servidor. Comprueba tu conexión.";
-    }
-  }
-
-  return "Ocurrió un error inesperado. Intenta nuevamente.";
 };
 
 // Presenta visualmente los estados de las matrículas.
@@ -121,7 +99,7 @@ export default function MatriculasPage() {
       setMatriculas(misMatriculas);
       setGrupos(todosLosGrupos);
     } catch (err) {
-      setError(obtenerMensajeError(err));
+      setError(extraerMensajeError(err));
     } finally {
       setCargando(false);
     }
@@ -157,7 +135,7 @@ export default function MatriculasPage() {
       await cargarDatos();
       setPestana("matriculas");
     } catch (err) {
-      setError(obtenerMensajeError(err));
+      setError(extraerMensajeError(err));
     } finally {
       setProcesandoGrupo(null);
     }
