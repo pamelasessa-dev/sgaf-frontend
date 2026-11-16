@@ -19,6 +19,18 @@ export async function actualizarMiPerfil(
 
   return data;
 }
+// Subir o actualizar la foto de perfil del usuario autenticado.
+export async function actualizarMiFoto(foto: File): Promise<UsuarioSistema> {
+  const formulario = new FormData();
+  formulario.append("foto", foto);
+
+  const { data } = await api.patch<UsuarioSistema>(
+    "/usuarios/me/foto",
+    formulario,
+  );
+
+  return data;
+}
 
 // Obtener todos los usuarios.
 export async function obtenerUsuarios(): Promise<UsuarioSistema[]> {

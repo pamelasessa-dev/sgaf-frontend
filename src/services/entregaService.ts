@@ -15,13 +15,29 @@ import type {
 /**
  * Crear una entrega como estudiante.
  *
- * Se admite una respuesta escrita, una URL de archivo
- * o ambas opciones.
+ * Permite enviar respuesta escrita, archivo o ambos.
  */
 export const crearEntrega = async (
   datos: CrearEntregaDto,
+  archivo?: File,
 ): Promise<EntregaAcademica> => {
-  const respuesta = await api.post<EntregaAcademica>("/entregas", datos);
+  const formulario = new FormData();
+
+  formulario.append("id_actividad", String(datos.id_actividad));
+
+  if (datos.respuesta_texto) {
+    formulario.append("respuesta_texto", datos.respuesta_texto);
+  }
+
+  if (datos.archivo_url) {
+    formulario.append("archivo_url", datos.archivo_url);
+  }
+
+  if (archivo) {
+    formulario.append("archivo", archivo);
+  }
+
+  const respuesta = await api.post<EntregaAcademica>("/entregas", formulario);
 
   return respuesta.data;
 };

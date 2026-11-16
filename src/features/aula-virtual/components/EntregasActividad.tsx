@@ -15,6 +15,14 @@ interface EntregasActividadProps {
   onCerrar: () => void;
 }
 
+function formatearTamano(tamano: number): string {
+  if (tamano < 1024 * 1024) {
+    return `${(tamano / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(tamano / (1024 * 1024)).toFixed(2)} MB`;
+}
+
 export default function EntregasActividad({
   actividad,
   onCerrar,
@@ -211,14 +219,32 @@ export default function EntregasActividad({
                 )}
 
                 {entrega.archivo_url && (
-                  <div className="mt-3">
+                  <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3">
+                    <p className="mb-2 text-xs font-semibold text-indigo-800">
+                      Archivo entregado
+                    </p>
+
+                    <p className="break-all text-sm font-medium text-gray-800">
+                      {entrega.archivo_nombre ?? "Archivo adjunto"}
+                    </p>
+
+                    <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-gray-500">
+                      {entrega.archivo_mime && (
+                        <span>{entrega.archivo_mime}</span>
+                      )}
+
+                      {entrega.archivo_tamano != null && (
+                        <span>{formatearTamano(entrega.archivo_tamano)}</span>
+                      )}
+                    </div>
+
                     <a
                       href={entrega.archivo_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-medium text-indigo-600 hover:underline"
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                     >
-                      Ver archivo o recurso entregado
+                      Abrir archivo
                     </a>
                   </div>
                 )}
@@ -320,11 +346,3 @@ export default function EntregasActividad({
     </section>
   );
 }
-/**Qué hace este componente
-- Consulta las entregas de una actividad.
-- Muestra el nombre y correo del estudiante.
-- Permite leer respuestas escritas y abrir recursos externos.
-- Permite asignar un puntaje y una observación.
-- Diferencia entregas pendientes de las calificadas.
-- Actualiza el listado después de calificar. 
-*/

@@ -140,6 +140,9 @@ export interface EntregaAcademica {
   id_matricula: number;
   fecha_entrega: string;
   archivo_url: string | null;
+  archivo_nombre?: string | null;
+  archivo_mime?: string | null;
+  archivo_tamano?: number | null;
   respuesta_texto: string | null;
   puntaje_obtenido: ValorDecimal | null;
   observacion_docente: string | null;
