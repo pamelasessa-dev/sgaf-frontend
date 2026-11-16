@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 
 import { crearEntrega } from "../../../services/entregaService";
 import { extraerMensajeError } from "../../../lib/erroresHttp";
@@ -14,12 +14,17 @@ interface EntregaEstudianteProps {
   onEntregaCreada: (entrega: EntregaAcademica) => void;
 }
 
+const TAMANO_MAXIMO = 10 * 1024 * 1024;
+
+const FORMATOS_PERMITIDOS = [".pdf", ".doc", ".docx", ".xlsx", ".pptx", ".txt"];
+
 export default function EntregaEstudiante({
   actividad,
   entrega,
   onEntregaCreada,
 }: EntregaEstudianteProps) {
   const [respuestaTexto, setRespuestaTexto] = useState("");
+  const [archivo, setArchivo] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
 
@@ -34,11 +39,41 @@ export default function EntregaEstudiante({
 
   const fecha = (valor: string) => new Date(valor).toLocaleString("es-UY");
 
+  function manejarSeleccionArchivo(evento: ChangeEvent<HTMLInputElement>) {
+    const archivoSeleccionado = evento.target.files?.[0];
+
+    setError("");
+
+    if (!archivoSeleccionado) return;
+
+    const extension = archivoSeleccionado.name
+      .substring(archivoSeleccionado.name.lastIndexOf("."))
+      .toLowerCase();
+
+    if (!FORMATOS_PERMITIDOS.includes(extension)) {
+      setArchivo(null);
+      evento.target.value = "";
+      setError(
+        "Formato no permitido. Seleccioná PDF, DOC, DOCX, XLSX, PPTX o TXT.",
+      );
+      return;
+    }
+
+    if (archivoSeleccionado.size > TAMANO_MAXIMO) {
+      setArchivo(null);
+      evento.target.value = "";
+      setError("El archivo no puede superar los 10 MB.");
+      return;
+    }
+
+    setArchivo(archivoSeleccionado);
+  }
+
   const enviarEntrega = async (evento: React.FormEvent<HTMLFormElement>) => {
     evento.preventDefault();
 
-    if (!respuestaTexto.trim()) {
-      setError("Escribe una respuesta antes de enviar.");
+    if (!respuestaTexto.trim() && !archivo) {
+      setError("Escribí una respuesta o adjuntá un archivo antes de enviar.");
       return;
     }
 
@@ -46,13 +81,17 @@ export default function EntregaEstudiante({
       setEnviando(true);
       setError("");
 
-      const nuevaEntrega = await crearEntrega({
-        id_actividad: actividad.id_actividad,
-        respuesta_texto: respuestaTexto.trim(),
-      });
+      const nuevaEntrega = await crearEntrega(
+        {
+          id_actividad: actividad.id_actividad,
+          respuesta_texto: respuestaTexto.trim() || undefined,
+        },
+        archivo ?? undefined,
+      );
 
       onEntregaCreada(nuevaEntrega);
       setRespuestaTexto("");
+      setArchivo(null);
     } catch (err: unknown) {
       setError(extraerMensajeError(err));
     } finally {
@@ -117,7 +156,7 @@ export default function EntregaEstudiante({
               href={entrega.archivo_url}
               target="_blank"
               rel="noreferrer"
-              className="text-sm font-medium text-indigo-600 hover:underline"
+              className="inline-block text-sm font-medium text-indigo-600 hover:underline"
             >
               Consultar archivo entregado
             </a>
@@ -152,24 +191,74 @@ export default function EntregaEstudiante({
           )}
         </div>
       ) : disponible ? (
-        <form onSubmit={enviarEntrega} className="space-y-3">
-          <label
-            htmlFor={`respuesta-${actividad.id_actividad}`}
-            className="block text-sm font-medium text-gray-700"
-          >
-            Escribe tu respuesta
-          </label>
+        <form onSubmit={enviarEntrega} className="space-y-4">
+          <div>
+            <label
+              htmlFor={`respuesta-${actividad.id_actividad}`}
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
+              Escribí tu respuesta (opcional si adjuntás un archivo)
+            </label>
 
-          <textarea
-            id={`respuesta-${actividad.id_actividad}`}
-            value={respuestaTexto}
-            onChange={(evento) => setRespuestaTexto(evento.target.value)}
-            rows={5}
-            maxLength={10000}
-            placeholder="Escribe aquí tu trabajo o respuesta..."
-            className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            disabled={enviando}
-          />
+            <textarea
+              id={`respuesta-${actividad.id_actividad}`}
+              value={respuestaTexto}
+              onChange={(evento) => setRespuestaTexto(evento.target.value)}
+              rows={5}
+              maxLength={10000}
+              placeholder="Escribí aquí tu trabajo o respuesta..."
+              className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              disabled={enviando}
+            />
+          </div>
+
+          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+            <label
+              htmlFor={`archivo-${actividad.id_actividad}`}
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
+              Adjuntar archivo (opcional)
+            </label>
+
+            <input
+              id={`archivo-${actividad.id_actividad}`}
+              type="file"
+              accept=".pdf,.doc,.docx,.xlsx,.pptx,.txt"
+              onChange={manejarSeleccionArchivo}
+              disabled={enviando}
+              className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-200"
+            />
+
+            <p className="mt-2 text-xs text-gray-500">
+              Formatos permitidos: PDF, DOC, DOCX, XLSX, PPTX y TXT. Máximo 10
+              MB.
+            </p>
+
+            {archivo && (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-700">
+                    {archivo.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {(archivo.size / (1024 * 1024)).toFixed(2)} MB
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setArchivo(null);
+                    setError("");
+                  }}
+                  disabled={enviando}
+                  className="text-sm font-medium text-red-600 hover:underline"
+                >
+                  Quitar archivo
+                </button>
+              </div>
+            )}
+          </div>
 
           {error && (
             <p
@@ -182,7 +271,7 @@ export default function EntregaEstudiante({
 
           <button
             type="submit"
-            disabled={enviando || !respuestaTexto.trim()}
+            disabled={enviando || (!respuestaTexto.trim() && !archivo)}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {enviando ? "Enviando..." : "Enviar entrega"}

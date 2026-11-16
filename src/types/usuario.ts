@@ -13,6 +13,7 @@ export interface UsuarioSistema {
   rol: RolUsuario;
   estado: EstadoUsuario;
   fecha_creacion: string;
+  foto_perfil_url?: string | null;
 }
 export interface ActualizarMiPerfilRequest {
   primer_nombre?: string;

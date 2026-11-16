@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 
 import {
+  actualizarMiFoto,
   actualizarMiPerfil,
   obtenerMiPerfil,
 } from "../../services/usuarioService";
@@ -17,6 +18,12 @@ export default function MiPerfilPage() {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+
+  const [fotoSeleccionada, setFotoSeleccionada] = useState<File | null>(null);
+  const [vistaPrevia, setVistaPrevia] = useState("");
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [mensajeFoto, setMensajeFoto] = useState("");
+  const [errorFoto, setErrorFoto] = useState("");
 
   useEffect(() => {
     async function cargarPerfil() {
@@ -42,6 +49,18 @@ export default function MiPerfilPage() {
     cargarPerfil();
   }, []);
 
+  useEffect(() => {
+    if (!fotoSeleccionada) {
+      setVistaPrevia("");
+      return;
+    }
+
+    const url = URL.createObjectURL(fotoSeleccionada);
+    setVistaPrevia(url);
+
+    return () => URL.revokeObjectURL(url);
+  }, [fotoSeleccionada]);
+
   function manejarCambio(
     campo: keyof ActualizarMiPerfilRequest,
     valor: string,
@@ -50,6 +69,57 @@ export default function MiPerfilPage() {
       ...actual,
       [campo]: valor,
     }));
+  }
+
+  function manejarSeleccionFoto(evento: ChangeEvent<HTMLInputElement>) {
+    const archivo = evento.target.files?.[0];
+
+    setMensajeFoto("");
+    setErrorFoto("");
+
+    if (!archivo) return;
+
+    const formatosPermitidos = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!formatosPermitidos.includes(archivo.type)) {
+      setFotoSeleccionada(null);
+      evento.target.value = "";
+      setErrorFoto("Seleccioná una imagen JPG, PNG o WebP.");
+      return;
+    }
+
+    if (archivo.size > 2 * 1024 * 1024) {
+      setFotoSeleccionada(null);
+      evento.target.value = "";
+      setErrorFoto("La imagen no puede superar los 2 MB.");
+      return;
+    }
+
+    setFotoSeleccionada(archivo);
+  }
+
+  async function subirFoto() {
+    if (!fotoSeleccionada) return;
+
+    setSubiendoFoto(true);
+    setMensajeFoto("");
+    setErrorFoto("");
+
+    try {
+      await actualizarMiFoto(fotoSeleccionada);
+
+      // Volvemos a consultar el perfil para obtener la nueva URL firmada.
+      const datosActualizados = await obtenerMiPerfil();
+
+      setPerfil(datosActualizados);
+      setFotoSeleccionada(null);
+      setMensajeFoto("Tu foto de perfil se actualizó correctamente.");
+    } catch (err) {
+      console.error("Error al actualizar la foto:", err);
+      setErrorFoto("No se pudo actualizar la foto. Intentá nuevamente.");
+    } finally {
+      setSubiendoFoto(false);
+    }
   }
 
   async function guardarCambios(evento: React.FormEvent<HTMLFormElement>) {
@@ -141,12 +211,20 @@ export default function MiPerfilPage() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-700">
-            {perfil.primer_nombre.charAt(0).toUpperCase()}
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-100 text-2xl font-bold text-indigo-700">
+            {vistaPrevia || perfil.foto_perfil_url ? (
+              <img
+                src={vistaPrevia || perfil.foto_perfil_url || ""}
+                alt="Foto de perfil"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              perfil.primer_nombre.charAt(0).toUpperCase()
+            )}
           </div>
 
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900">
               {nombreCompleto}
             </h2>
@@ -154,6 +232,50 @@ export default function MiPerfilPage() {
             <p className="mt-1 text-xs font-medium text-indigo-600">
               {perfil.rol}
             </p>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <label
+                htmlFor="foto-perfil"
+                className="cursor-pointer rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Seleccionar foto
+              </label>
+
+              <input
+                id="foto-perfil"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={manejarSeleccionFoto}
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                onClick={subirFoto}
+                disabled={!fotoSeleccionada || subiendoFoto}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {subiendoFoto ? "Subiendo..." : "Guardar foto"}
+              </button>
+            </div>
+
+            <p className="mt-2 text-xs text-slate-400">
+              JPG, PNG o WebP. Tamaño máximo: 2 MB.
+            </p>
+
+            {fotoSeleccionada && (
+              <p className="mt-2 text-xs text-slate-600">
+                Archivo seleccionado: {fotoSeleccionada.name}
+              </p>
+            )}
+
+            {mensajeFoto && (
+              <p className="mt-3 text-sm text-green-700">{mensajeFoto}</p>
+            )}
+
+            {errorFoto && (
+              <p className="mt-3 text-sm text-red-600">{errorFoto}</p>
+            )}
           </div>
         </div>
       </div>
