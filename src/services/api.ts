@@ -13,6 +13,12 @@ const api = axios.create({
 // Antes de cada petición, agregamos el token si existe.
 api.interceptors.request.use(
   (config) => {
+    // Si enviamos FormData, dejamos que el navegador configure
+    // el Content-Type con su boundary correspondiente.
+    if (config.data instanceof FormData) {
+      config.headers.delete("Content-Type");
+    }
+
     const token = useAuthStore.getState().token;
 
     if (token) {
